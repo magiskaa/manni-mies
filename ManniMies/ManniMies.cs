@@ -8,50 +8,91 @@ using Jypeli.Widgets;
 namespace ManniMies;
 
 /// @author Valtteri Antikainen
-/// @version 29.09.2023
+/// @version 15.10.2023
 /// <summary>
-/// 
+/// Kenttä tekstitiedostosta
 /// </summary>
 public class ManniMies : PhysicsGame
 {
     private PlatformCharacter pelaaja;
-    private const double nopeus = 100;
-    private const double hyppyNopeus = 500;
+    private const double nopeus = 130;
+    private const double hyppyNopeus = 750;
+    private const int ruudunKoko = 40;
+    
     
     public override void Begin()
     {
-        Gravity = new Vector(0, -500);
+        Gravity = new Vector(0, -1000);
         SetWindowSize(1920,1080,false);
-        LisaaPelaaja();
-        LuoNappaimet();
+        LuoKentta();
+        LisaaNappaimet();
         Level.CreateBorders();
         Camera.Follow(pelaaja);
         Camera.ZoomFactor = 2;
         Camera.StayInLevel = true;
     }
 
-    private void LisaaPelaaja()
+    private void LuoKentta()
     {
-        pelaaja = new PlatformCharacter(100, 100, Shape.Circle);
-        pelaaja.Mass = 4.0;
-        Add(pelaaja);
+        TileMap kentta = TileMap.FromLevelAsset("kentta1.txt");
+        kentta.SetTileMethod('#',LisaaTaso);
+        kentta.SetTileMethod('N',LisaaPelaaja);
+        kentta.SetTileMethod('*',LisaaManni);
+        kentta.Execute(ruudunKoko,ruudunKoko);
+        Level.CreateBorders();
     }
 
-    private void LuoNappaimet()
+    private void LisaaTaso(Vector paikka, double leveys, double korkeus)
+    {
+        PhysicsObject taso = PhysicsObject.CreateStaticObject(leveys, korkeus);
+        taso.Position = paikka;
+        taso.Color = Color.Gray;
+        taso.Tag = "taso";
+        Add(taso);
+    }
+    
+    private void LisaaPelaaja(Vector paikka, double leveys, double korkeus)
+    {
+        pelaaja = new PlatformCharacter(leveys,korkeus)
+        {
+            Position = paikka,
+            Mass = 4.0,
+            Tag = "pelaaja"
+        };
+        AddCollisionHandler(pelaaja,"manni",TormaaManniin);
+        Add(pelaaja);
+    }
+    
+    private void LisaaManni(Vector paikka, double leveys, double korkeus)
+    {
+        PhysicsObject manni = PhysicsObject.CreateStaticObject(leveys, korkeus);
+        manni.IgnoresCollisionResponse = true;
+        manni.Position = paikka;
+        manni.Color = Color.Yellow;
+        manni.Tag = "manni";
+        Add(manni);
+    }
+
+    private void LisaaNappaimet()
     {
         Keyboard.Listen(Key.D, ButtonState.Down, Liikuta, "", pelaaja, nopeus);
         Keyboard.Listen(Key.A, ButtonState.Down, Liikuta, "", pelaaja, -nopeus);
         Keyboard.Listen(Key.W, ButtonState.Pressed, Hyppaa, "", pelaaja, hyppyNopeus);
     }
 
-    private void Liikuta(PlatformCharacter hahmo, double nopeus)
+    private static void Liikuta(PlatformCharacter hahmo, double nopeus)
     {
         hahmo.Walk(nopeus);
     }
 
-    private void Hyppaa(PlatformCharacter hahmo, double nopeus)
+    private static void Hyppaa(PlatformCharacter hahmo, double nopeus)
     {
         hahmo.Jump(nopeus);
+    }
+    
+    private static void TormaaManniin(PhysicsObject hahmo, PhysicsObject manni)
+    {
+        manni.Destroy();
     }
 }
 

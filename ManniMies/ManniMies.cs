@@ -8,13 +8,14 @@ using Jypeli.Widgets;
 namespace ManniMies;
 
 /// @author Valtteri Antikainen
-/// @version 15.10.2023
+/// @version 16.10.2023
 /// <summary>
-/// Kenttä tekstitiedostosta
+/// Lisätty vihu ja vihulle aivot
 /// </summary>
 public class ManniMies : PhysicsGame
 {
     private PlatformCharacter pelaaja;
+    private PlatformCharacter vihu;
     private const double nopeus = 130;
     private const double hyppyNopeus = 750;
     private const int ruudunKoko = 40;
@@ -38,6 +39,7 @@ public class ManniMies : PhysicsGame
         kentta.SetTileMethod('#',LisaaTaso);
         kentta.SetTileMethod('N',LisaaPelaaja);
         kentta.SetTileMethod('*',LisaaManni);
+        kentta.SetTileMethod('-',LisaaVihu);
         kentta.Execute(ruudunKoko,ruudunKoko);
         Level.CreateBorders();
     }
@@ -59,7 +61,8 @@ public class ManniMies : PhysicsGame
             Mass = 4.0,
             Tag = "pelaaja"
         };
-        AddCollisionHandler(pelaaja,"manni",TormaaManniin);
+        AddCollisionHandler(pelaaja, "manni", TormaaManniin);
+        AddCollisionHandler(pelaaja, "vihu", TormaaVihuun);
         Add(pelaaja);
     }
     
@@ -73,6 +76,20 @@ public class ManniMies : PhysicsGame
         Add(manni);
     }
 
+    private void LisaaVihu(Vector paikka, double leveys, double korkeus)
+    {
+        vihu = new PlatformCharacter(leveys, korkeus)
+        {
+            Position = paikka,
+            Mass = 4.0,
+            Tag = "vihu",
+            Color = Color.Black
+        };
+        PlatformWandererBrain vihunAivot = new PlatformWandererBrain();
+        vihu.Brain = vihunAivot;
+        Add(vihu);
+    }
+    
     private void LisaaNappaimet()
     {
         Keyboard.Listen(Key.D, ButtonState.Down, Liikuta, "", pelaaja, nopeus);
@@ -94,5 +111,9 @@ public class ManniMies : PhysicsGame
     {
         manni.Destroy();
     }
-}
 
+    private static void TormaaVihuun(PhysicsObject hahmo, PhysicsObject vihu)
+    {
+        vihu.Destroy();
+    }
+}

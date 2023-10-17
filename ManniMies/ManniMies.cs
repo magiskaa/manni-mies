@@ -8,9 +8,9 @@ using Jypeli.Widgets;
 namespace ManniMies;
 
 /// @author Valtteri Antikainen
-/// @version 16.10.2023
+/// @version 17.10.2023
 /// <summary>
-/// Lisätty vihu ja vihulle aivot
+/// Lisätty piste- sekä elämälaskuri
 /// </summary>
 public class ManniMies : PhysicsGame
 {
@@ -19,14 +19,19 @@ public class ManniMies : PhysicsGame
     private const double nopeus = 130;
     private const double hyppyNopeus = 750;
     private const int ruudunKoko = 40;
+    private IntMeter pisteLaskuri;
+    private DoubleMeter elamaLaskuri;
     
     
     public override void Begin()
     {
+        ClearAll();
         Gravity = new Vector(0, -1000);
         SetWindowSize(1920,1080,false);
         LuoKentta();
         LisaaNappaimet();
+        LuoPisteLaskuri();
+        LuoElamaLaskuri();
         Level.CreateBorders();
         Camera.Follow(pelaaja);
         Camera.ZoomFactor = 2;
@@ -86,6 +91,7 @@ public class ManniMies : PhysicsGame
             Color = Color.Black
         };
         PlatformWandererBrain vihunAivot = new PlatformWandererBrain();
+        vihunAivot.Speed = 70;
         vihu.Brain = vihunAivot;
         Add(vihu);
     }
@@ -107,13 +113,75 @@ public class ManniMies : PhysicsGame
         hahmo.Jump(nopeus);
     }
     
-    private static void TormaaManniin(PhysicsObject hahmo, PhysicsObject manni)
+    private void TormaaManniin(PhysicsObject hahmo, PhysicsObject manni)
     {
         manni.Destroy();
+        pisteLaskuri.Value += 1;
+        Teksti("HERKKUA!!");
     }
 
-    private static void TormaaVihuun(PhysicsObject hahmo, PhysicsObject vihu)
+    private void TormaaVihuun(PhysicsObject hahmo, PhysicsObject vihu)
     {
+        Teksti("AIJAIJAI SATTUI!!");
         vihu.Destroy();
+        elamaLaskuri.Value -= 1;
+    }
+    
+    private void LuoPisteLaskuri()
+    {
+        pisteLaskuri = new IntMeter(0);
+
+        Label pisteNaytto = new Label(200,80);
+        pisteNaytto.SizeMode = TextSizeMode.StretchText;
+        pisteNaytto.X = Screen.Right - 200;
+        pisteNaytto.Y = Screen.Top - 70;
+        pisteNaytto.TextColor = Color.White;
+        pisteNaytto.BindTo(pisteLaskuri);
+        pisteNaytto.IntFormatString = "Pisteitä: {0:D1}";
+        Add(pisteNaytto);
+    }
+    
+    private void LuoElamaLaskuri()
+    {
+        elamaLaskuri = new DoubleMeter(10);
+        elamaLaskuri.MaxValue = 3;
+        elamaLaskuri.LowerLimit += ElamaLoppui;
+
+        ProgressBar elamaPalkki = new ProgressBar(300, 80);
+        elamaPalkki.X = Screen.Left + 200;
+        elamaPalkki.Y = Screen.Top - 100;
+        elamaPalkki.Color = Color.White;
+        elamaPalkki.BarColor = Color.Red;
+        elamaPalkki.BorderColor = Color.Black;
+        elamaPalkki.BindTo(elamaLaskuri);
+        Add(elamaPalkki);
+    }
+    
+    private void ElamaLoppui()
+    {
+        ClearAll();
+        Level.BackgroundColor = Color.Black;
+        Label kuolit = new Label(900, 150, "WASTED");
+        kuolit.SizeMode = TextSizeMode.StretchText;
+        kuolit.X = 0;   
+        kuolit.Y = 0;
+        kuolit.TextColor = Color.Red;
+        Add(kuolit);
+        Timer.SingleShot(2.0, 
+            delegate { Begin(); } 
+        );
+    }
+    
+    private void Teksti(string text)
+    {
+        Label teksti = new Label(250, 60, text);
+        teksti.SizeMode = TextSizeMode.StretchText;
+        teksti.X = 0;
+        teksti.Y = -330;
+        teksti.TextColor = Color.Black;
+        Add(teksti);
+        Timer.SingleShot(1.5, 
+            delegate { teksti.Destroy(); } 
+        );
     }
 }

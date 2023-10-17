@@ -10,17 +10,29 @@ namespace ManniMies;
 /// @author Valtteri Antikainen
 /// @version 17.10.2023
 /// <summary>
-/// Lisätty piste- sekä elämälaskuri
+/// Lisätty tekstuurit sekä animaatiot pelaajalle ja vihulle
 /// </summary>
 public class ManniMies : PhysicsGame
 {
     private PlatformCharacter pelaaja;
     private PlatformCharacter vihu;
+    
     private const double nopeus = 130;
     private const double hyppyNopeus = 750;
     private const int ruudunKoko = 40;
+    
     private IntMeter pisteLaskuri;
     private DoubleMeter elamaLaskuri;
+    
+    private Image[] HahmoIdle = LoadImages("idle.png");
+    private Image[] HahmonKavely = LoadImages("1", "2", "3", "4", "5", "6", "7", "8");
+    private Image[] HahmoAmpuu = LoadImages("ammu1.png", "ammu2.png", "ammu3.png", "ammu4.png");
+    
+    private Image manniKuva = LoadImage("manni.png");
+    private Image[] vihunKavely = LoadImages("vihu1.png","vihu2.png","vihu3.png","vihu4.png");
+    
+    private Image tausta = LoadImage("BG.png");
+    private Image platform = LoadImage("platform.png");
     
     
     public override void Begin()
@@ -33,9 +45,11 @@ public class ManniMies : PhysicsGame
         LuoPisteLaskuri();
         LuoElamaLaskuri();
         Level.CreateBorders();
+        Level.Background.Image = tausta;
         Camera.Follow(pelaaja);
         Camera.ZoomFactor = 2;
         Camera.StayInLevel = true;
+        Level.Background.FitToLevel();
     }
 
     private void LuoKentta()
@@ -53,7 +67,7 @@ public class ManniMies : PhysicsGame
     {
         PhysicsObject taso = PhysicsObject.CreateStaticObject(leveys, korkeus);
         taso.Position = paikka;
-        taso.Color = Color.Gray;
+        taso.Image = platform;
         taso.Tag = "taso";
         Add(taso);
     }
@@ -64,8 +78,12 @@ public class ManniMies : PhysicsGame
         {
             Position = paikka,
             Mass = 4.0,
-            Tag = "pelaaja"
+            Tag = "pelaaja",
+            AnimWalk = new Animation(HahmonKavely),
+            AnimIdle = new Animation(HahmoIdle),
+            
         };
+        pelaaja.AnimWalk.FPS = 12;
         AddCollisionHandler(pelaaja, "manni", TormaaManniin);
         AddCollisionHandler(pelaaja, "vihu", TormaaVihuun);
         Add(pelaaja);
@@ -76,7 +94,7 @@ public class ManniMies : PhysicsGame
         PhysicsObject manni = PhysicsObject.CreateStaticObject(leveys, korkeus);
         manni.IgnoresCollisionResponse = true;
         manni.Position = paikka;
-        manni.Color = Color.Yellow;
+        manni.Image = manniKuva;
         manni.Tag = "manni";
         Add(manni);
     }
@@ -88,8 +106,9 @@ public class ManniMies : PhysicsGame
             Position = paikka,
             Mass = 4.0,
             Tag = "vihu",
-            Color = Color.Black
+            AnimWalk = new Animation(vihunKavely)
         };
+        vihu.AnimWalk.FPS = 6;
         PlatformWandererBrain vihunAivot = new PlatformWandererBrain();
         vihunAivot.Speed = 70;
         vihu.Brain = vihunAivot;
@@ -98,9 +117,10 @@ public class ManniMies : PhysicsGame
     
     private void LisaaNappaimet()
     {
-        Keyboard.Listen(Key.D, ButtonState.Down, Liikuta, "", pelaaja, nopeus);
-        Keyboard.Listen(Key.A, ButtonState.Down, Liikuta, "", pelaaja, -nopeus);
-        Keyboard.Listen(Key.W, ButtonState.Pressed, Hyppaa, "", pelaaja, hyppyNopeus);
+        Keyboard.Listen(Key.D, ButtonState.Down, Liikuta, "pelaaja liikkuu oikealle", pelaaja, nopeus);
+        Keyboard.Listen(Key.A, ButtonState.Down, Liikuta, "pelaaja liikkuu vasemmalle", pelaaja, -nopeus);
+        Keyboard.Listen(Key.W, ButtonState.Pressed, Hyppaa, "pelaaja hyppää", pelaaja, hyppyNopeus);
+        Keyboard.Listen(Key.F1, ButtonState.Pressed, ShowControlHelp, "näytä ohjeet");
     }
 
     private static void Liikuta(PlatformCharacter hahmo, double nopeus)

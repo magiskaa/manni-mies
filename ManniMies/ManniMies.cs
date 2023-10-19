@@ -8,9 +8,9 @@ using Jypeli.Widgets;
 namespace ManniMies;
 
 /// @author Valtteri Antikainen
-/// @version 17.10.2023
+/// @version 19.10.2023
 /// <summary>
-/// Lisätty tekstuurit sekä animaatiot pelaajalle ja vihulle
+/// Lisätty ase pelaajalle
 /// </summary>
 public class ManniMies : PhysicsGame
 {
@@ -86,6 +86,10 @@ public class ManniMies : PhysicsGame
         pelaaja.AnimWalk.FPS = 12;
         AddCollisionHandler(pelaaja, "manni", TormaaManniin);
         AddCollisionHandler(pelaaja, "vihu", TormaaVihuun);
+        pelaaja.Weapon = new AssaultRifle(30, 10);
+        pelaaja.Weapon.InfiniteAmmo = true;
+        pelaaja.Weapon.ProjectileCollision = AmmusOsui;
+        pelaaja.Weapon.FireRate = 2;
         Add(pelaaja);
     }
     
@@ -120,17 +124,18 @@ public class ManniMies : PhysicsGame
         Keyboard.Listen(Key.D, ButtonState.Down, Liikuta, "pelaaja liikkuu oikealle", pelaaja, nopeus);
         Keyboard.Listen(Key.A, ButtonState.Down, Liikuta, "pelaaja liikkuu vasemmalle", pelaaja, -nopeus);
         Keyboard.Listen(Key.W, ButtonState.Pressed, Hyppaa, "pelaaja hyppää", pelaaja, hyppyNopeus);
+        Keyboard.Listen(Key.Space, ButtonState.Down, AmmuAseella, "pelaaja ampuu", pelaaja);
         Keyboard.Listen(Key.F1, ButtonState.Pressed, ShowControlHelp, "näytä ohjeet");
     }
 
-    private static void Liikuta(PlatformCharacter hahmo, double nopeus)
+    private static void Liikuta(PlatformCharacter hahmo, double suunta)
     {
-        hahmo.Walk(nopeus);
+        hahmo.Walk(suunta);
     }
 
-    private static void Hyppaa(PlatformCharacter hahmo, double nopeus)
+    private static void Hyppaa(PlatformCharacter hahmo, double suunta)
     {
-        hahmo.Jump(nopeus);
+        hahmo.Jump(suunta);
     }
     
     private void TormaaManniin(PhysicsObject hahmo, PhysicsObject manni)
@@ -140,22 +145,50 @@ public class ManniMies : PhysicsGame
         Teksti("HERKKUA!!");
     }
 
-    private void TormaaVihuun(PhysicsObject hahmo, PhysicsObject vihu)
+    private void TormaaVihuun(PhysicsObject hahmo, PhysicsObject vihollinen)
     {
         Teksti("AIJAIJAI SATTUI!!");
-        vihu.Destroy();
+        vihollinen.Destroy();
         elamaLaskuri.Value -= 1;
+    }
+    
+    private void AmmuAseella(PlatformCharacter hahmo)
+    {
+        PhysicsObject ammus = hahmo.Weapon.Shoot();
+        
+        hahmo.Animation = new Animation(HahmoAmpuu);
+        hahmo.Animation.FPS = 4;
+        
+        if (ammus != null)
+        {
+            hahmo.Animation.Start(1);
+            ammus.Size *= 1.1;
+            ammus.MaximumLifetime = TimeSpan.FromSeconds(3.0);
+        } 
+    }
+    
+    private void AmmusOsui(PhysicsObject ammus, PhysicsObject kohde)
+    {
+        if (ReferenceEquals(kohde.Tag, "vihu"))
+        {
+            ammus.Destroy();
+            kohde.Destroy();
+            pisteLaskuri.Value += 1;
+        }
+        ammus.Destroy();
     }
     
     private void LuoPisteLaskuri()
     {
         pisteLaskuri = new IntMeter(0);
 
-        Label pisteNaytto = new Label(200,80);
-        pisteNaytto.SizeMode = TextSizeMode.StretchText;
-        pisteNaytto.X = Screen.Right - 200;
-        pisteNaytto.Y = Screen.Top - 70;
-        pisteNaytto.TextColor = Color.White;
+        Label pisteNaytto = new Label(200,80)
+        {
+            SizeMode = TextSizeMode.StretchText,
+            X = Screen.Right - 200,
+            Y = Screen.Top - 70,
+            TextColor = Color.White
+        };
         pisteNaytto.BindTo(pisteLaskuri);
         pisteNaytto.IntFormatString = "Pisteitä: {0:D1}";
         Add(pisteNaytto);
@@ -167,12 +200,14 @@ public class ManniMies : PhysicsGame
         elamaLaskuri.MaxValue = 3;
         elamaLaskuri.LowerLimit += ElamaLoppui;
 
-        ProgressBar elamaPalkki = new ProgressBar(300, 80);
-        elamaPalkki.X = Screen.Left + 200;
-        elamaPalkki.Y = Screen.Top - 100;
-        elamaPalkki.Color = Color.White;
-        elamaPalkki.BarColor = Color.Red;
-        elamaPalkki.BorderColor = Color.Black;
+        ProgressBar elamaPalkki = new ProgressBar(300, 80)
+        {
+            X = Screen.Left + 200,
+            Y = Screen.Top - 100,
+            Color = Color.White,
+            BarColor = Color.Red,
+            BorderColor = Color.Black
+        };
         elamaPalkki.BindTo(elamaLaskuri);
         Add(elamaPalkki);
     }
@@ -181,24 +216,24 @@ public class ManniMies : PhysicsGame
     {
         ClearAll();
         Level.BackgroundColor = Color.Black;
-        Label kuolit = new Label(900, 150, "WASTED");
-        kuolit.SizeMode = TextSizeMode.StretchText;
-        kuolit.X = 0;   
-        kuolit.Y = 0;
-        kuolit.TextColor = Color.Red;
+        Label kuolit = new Label(900, 150, "WASTED")
+        {
+            SizeMode = TextSizeMode.StretchText,
+            TextColor = Color.Red
+        };
         Add(kuolit);
-        Timer.SingleShot(2.0, 
-            delegate { Begin(); } 
-        );
+        Timer.SingleShot(2.0, Begin);
     }
     
     private void Teksti(string text)
     {
-        Label teksti = new Label(250, 60, text);
-        teksti.SizeMode = TextSizeMode.StretchText;
-        teksti.X = 0;
-        teksti.Y = -330;
-        teksti.TextColor = Color.Black;
+        Label teksti = new Label(250, 60, text)
+        {
+            SizeMode = TextSizeMode.StretchText,
+            X = 0,
+            Y = -330,
+            TextColor = Color.Black
+        };
         Add(teksti);
         Timer.SingleShot(1.5, 
             delegate { teksti.Destroy(); } 

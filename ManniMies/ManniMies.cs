@@ -8,9 +8,9 @@ using Jypeli.Widgets;
 namespace ManniMies;
 
 /// @author Valtteri Antikainen
-/// @version 27.10.2023
+/// @version 3.11.2023
 /// <summary>
-/// Lisätty kaksi kenttää ja alkuvalikko
+/// Lisätty kenttään sade ja poistettu toistoa
 /// </summary>
 public class ManniMies : PhysicsGame
 {
@@ -40,6 +40,14 @@ public class ManniMies : PhysicsGame
     
     List<Label> valikonKohdat;
     
+    private SoundEffect valikkoHover = LoadSoundEffect("valikkoHover");
+    private SoundEffect valikkoValinta = LoadSoundEffect("valikkovalinta");
+    private SoundEffect manninKerays = LoadSoundEffect("manninKerays");
+    private SoundEffect osuma = LoadSoundEffect("osuma");
+    private SoundEffect levelCompleted = LoadSoundEffect("levelCompleted");
+    private SoundEffect kentanVaihto = LoadSoundEffect("kentanVaihto");
+    private SoundEffect wasted = LoadSoundEffect("wasted");
+    
     public override void Begin()
     {
         SetWindowSize(1920, 1080, false); 
@@ -50,6 +58,8 @@ public class ManniMies : PhysicsGame
     private void Valikko()
     {
         Level.BackgroundColor = Color.LightBlue;
+        
+        MediaPlayer.Play("valikkoMusiikki");
         
         Label otsikko = new Label("ManniMies");
         otsikko.Y = 150;
@@ -90,12 +100,14 @@ public class ManniMies : PhysicsGame
         if (paalla)
         {
             kohta.TextColor = Color.Red;
+            valikkoHover.Play();
         }
         else kohta.TextColor = Color.Black;
     }
     private void SeuraavaKentta()
     {
         ClearAll();
+        valikkoValinta.Play();
 
         switch (kenttaNro)
         {
@@ -123,6 +135,7 @@ public class ManniMies : PhysicsGame
         LisaaNappaimet();
         LuoPisteLaskuri();
         LuoElamaLaskuri();
+        Timer.CreateAndStart(1, Sade);
 
         Camera.Follow(pelaaja);
         Camera.ZoomFactor = 2;
@@ -130,10 +143,15 @@ public class ManniMies : PhysicsGame
         Level.Background.Image = tausta;
         Level.Background.MovesWithCamera = true;
         Level.Background.FitToLevel();
+        
+        MediaPlayer.Play("taustamusiikki");
+        MediaPlayer.IsRepeating = true;
     }
 
     private void LuoKentta(string kenttaNRO)
     {
+        kentanVaihto.Play();
+        
         TileMap kentta = TileMap.FromLevelAsset(kenttaNRO);
         kentta.SetTileMethod('#',LisaaTaso);
         kentta.SetTileMethod('N',LisaaPelaaja);
@@ -145,13 +163,13 @@ public class ManniMies : PhysicsGame
         switch (kenttaNro)
         {
             case 1:
-                LevelTeksti("Level 1");
+                Teksti("Level 1", 300, 80, 500, false);
                 break;
             case 2:
-                LevelTeksti("Level 2");
+                Teksti("Level 2", 300, 80, 500, false);
                 break;
             case 3:
-                LevelTeksti("Level 3");
+                Teksti("Level 3", 300, 80, 500, false);
                 break;
         }
     }
@@ -235,11 +253,13 @@ public class ManniMies : PhysicsGame
     
     private void TormaaManniin(PhysicsObject hahmo, PhysicsObject manni)
     {
+        manninKerays.Play();
         manni.Destroy();
         pisteLaskuri.Value += 1;
-        Teksti("HERKKUA!!");
+        Teksti("HERKKUA!!",250, 60, -330, true);
         if (pisteLaskuri.Value >= 15)
         {
+            levelCompleted.Play();
             kenttaNro++;
             if (kenttaNro > 3) Voitit();
             else LevelLapi();
@@ -248,7 +268,8 @@ public class ManniMies : PhysicsGame
 
     private void TormaaVihuun(PhysicsObject hahmo, PhysicsObject vihollinen)
     {
-        Teksti("AIJAIJAI SATTUI!!");
+        osuma.Play();
+        Teksti("AIJAIJAI SATTUI!!", 250, 60, -330, true);
         vihollinen.Destroy();
         elamaLaskuri.Value -= 1;
     }
@@ -316,6 +337,7 @@ public class ManniMies : PhysicsGame
         if (kenttaNro >= 3) Voitit();
         
         MediaPlayer.Stop();
+        levelCompleted.Play();
         
         ClearAll();
         Level.BackgroundColor = Color.Black;
@@ -331,6 +353,7 @@ public class ManniMies : PhysicsGame
     private void Voitit()
     {
         MediaPlayer.Stop();
+        levelCompleted.Play();
         
         ClearAll();
         Camera.ZoomFactor = 1.5;
@@ -367,6 +390,9 @@ public class ManniMies : PhysicsGame
     
     private void ElamaLoppui()
     {
+        MediaPlayer.Stop();
+        wasted.Play();
+        
         ClearAll();
         Level.BackgroundColor = Color.Black;
         Label kuolit = new Label(900, 150, "WASTED")
@@ -374,34 +400,50 @@ public class ManniMies : PhysicsGame
             SizeMode = TextSizeMode.StretchText,
             TextColor = Color.Red
         };
-        Add(kuolit);
-        Timer.SingleShot(2.0, Begin);
+        Timer.SingleShot(2.5,delegate { Add(kuolit); });
+        Timer.SingleShot(7.0, SeuraavaKentta);
     }
     
-    private void Teksti(string text)
+    private void Teksti(string text, double leveys, double korkeus, int y, bool onko)
     {
-        Label teksti = new Label(250, 60, text)
+        Label teksti = new Label(leveys, korkeus, text)
         {
             SizeMode = TextSizeMode.StretchText,
-            X = 0,
-            Y = -330,
+            Y = y,
             TextColor = Color.Black
         };
         Add(teksti);
-        Timer.SingleShot(1.5, 
-            delegate { teksti.Destroy(); } 
-        );
+        if (onko)
+        {
+            Timer.SingleShot(1.5,
+                delegate { teksti.Destroy(); }
+            );
+        }
     }
     
-    private void LevelTeksti(string kentta)
+    private void Sade()
     {
-        Label teksti = new Label(300, 80, kentta)
+        if (kenttaNro == 1) LisaaSade(35, 0.1, 5, Color.LightBlue, Shape.Circle);
+
+        if (kenttaNro == 2) LisaaSade(25, 0.4, 7, Color.White, Shape.Circle);
+
+        if (kenttaNro == 3) LisaaSade(25, 0.1, 7, Color.Red, Shape.Triangle);
+    }
+    
+    private void LisaaSade(int paljonko, double massa, int koko, Color vari, Shape muoto)
+    {
+        for (int i = 0; i < paljonko; i++)
         {
-            SizeMode = TextSizeMode.StretchText,
-            X = 0,
-            Y = 500,
-            TextColor = Color.Black
-        };
-        Add(teksti);
+            PhysicsObject pisara = new PhysicsObject(koko, koko, muoto);
+            pisara.IgnoresGravity = true;
+            pisara.CollisionIgnorer = sama;
+            pisara.IgnoresCollisionResponse = true;
+            pisara.Mass = massa;
+            pisara.X = RandomGen.NextDouble(Level.Left, Level.Right);
+            pisara.Y = RandomGen.NextDouble(Level.Top, Level.Top + 500);
+            pisara.Color = vari;
+            Add(pisara, 3);
+            pisara.Hit(new Vector(0,-40));
+        }
     }
 }

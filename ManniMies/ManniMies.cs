@@ -13,7 +13,7 @@ namespace ManniMies;
 /// @author Valtteri Antikainen
 /// @version 23.11.2023
 /// <summary>
-/// Lisätty bossbattle ja tehty pientä hienosäätöä sekä lisätty kommentit
+/// Korjattu muutama virhe
 /// </summary>
 public class ManniMies : PhysicsGame
 {
@@ -24,13 +24,13 @@ public class ManniMies : PhysicsGame
     private bool bossiKuollut = false;
     
     private const double nopeus = 130;
-    private const double hyppyNopeus = 1050;
+    private const double hyppyNopeus = 750;
     private const int ruudunKoko = 40;
     
     private IntMeter pisteLaskuri;
     private DoubleMeter elamaLaskuri;
     private DoubleMeter bossinElamaLaskuri;
-    private int kenttaNro = 3;
+    private int kenttaNro = 1;
     
     private Ignorer sama = new ObjectIgnorer();
     
@@ -47,8 +47,6 @@ public class ManniMies : PhysicsGame
     private Image[] bossKavely = LoadImages("bossKavely1.png", "bossKavely2.png", "bossKavely3.png", "bossKavely4.png",
         "bossKavely5.png", "bossKavely6.png", "bossKavely7.png", "bossKavely8.png", "bossKavely9.png", "bossKavely10.png", 
         "bossKavely11.png", "bossKavely12.png");
-    private Image[] bossHit = LoadImages("bossHit1.png", "bossHit2.png", "bossHit3.png", "bossHit4.png",
-        "bossHit5.png");
     
     private Image tausta = LoadImage("BG.png");
     private Image platform = LoadImage("platform.png");

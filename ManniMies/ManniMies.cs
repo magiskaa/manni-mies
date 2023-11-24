@@ -2,64 +2,171 @@ using System;
 using System.Collections.Generic;
 using Jypeli;
 using Jypeli.Assets;
-using Jypeli.Controls;
+//using Jypeli.Controls;
 using Jypeli.Widgets;
-using Silk.NET.Input;
+//using Silk.NET.Input;
 using Key = Jypeli.Key;
 using MouseButton = Jypeli.MouseButton;
 
 namespace ManniMies;
 
 /// @author Valtteri Antikainen
-/// @version 23.11.2023
+/// @version 24.11.2023
 /// <summary>
-/// Korjattu muutama virhe
+/// Hienosäätöä
 /// </summary>
 public class ManniMies : PhysicsGame
 {
+    //TODO: funktio, https://tim.jyu.fi/view/kurssit/tie/ohj1/2023s/demot/demo9#tauno1
+    
+    /// <summary>
+    /// hahmo jolla pelataan
+    /// </summary>
     private PlatformCharacter pelaaja;
+    /// <summary>
+    /// viholliset joita ammutaan
+    /// </summary>
     private PlatformCharacter vihu;
+    /// <summary>
+    /// bossi joka pitää tappaa pelin lopussa
+    /// </summary>
     private PlatformCharacter boss;
+    /// <summary>
+    /// bossin aivot jotta bossi liikkuu kentässä
+    /// </summary>
     private PlatformWandererBrain bossinAivot;
+    /// <summary>
+    /// onko bossi kuollut vai ei
+    /// </summary>
     private bool bossiKuollut = false;
     
+    /// <summary>
+    /// nopeus jolla pelaaja liikkuu
+    /// </summary>
     private const double nopeus = 130;
+    /// <summary>
+    /// nopeus jolla pelaaja hyppää
+    /// </summary>
     private const double hyppyNopeus = 750;
+    /// <summary>
+    /// kentän tilemapin yhden ruudun koko
+    /// </summary>
     private const int ruudunKoko = 40;
+    /// <summary>
+    /// bossin aivot menee päälle kun pelaaja ylittää tämän rajan viimeisessä kentässä
+    /// </summary>
+    private const int raja = 320;
     
+    /// <summary>
+    /// laskee jäljellä olevat mannit
+    /// </summary>
     private IntMeter pisteLaskuri;
+    /// <summary>
+    /// pitää laskua pelaajan elämistä
+    /// </summary>
     private DoubleMeter elamaLaskuri;
+    /// <summary>
+    /// pitää laskua bossin elämistä
+    /// </summary>
     private DoubleMeter bossinElamaLaskuri;
+    /// <summary>
+    /// monesko kenttä on menossa
+    /// </summary>
     private int kenttaNro = 1;
     
+    /// <summary>
+    /// voi ampua banaanin läpi
+    /// </summary>
     private Ignorer sama = new ObjectIgnorer();
     
+    /// <summary>
+    /// kuva kun hahmo seisoo paikallaan
+    /// </summary>
     private Image[] HahmoIdle = LoadImages("idle.png");
+    /// <summary>
+    /// kuvat kun hahmo kävelee
+    /// </summary>
     private Image[] HahmonKavely = LoadImages("1", "2", "3", "4", "5", "6", "7", "8");
+    /// <summary>
+    /// kuvat kun hahmo ampuu
+    /// </summary>
     private Image[] HahmoAmpuu = LoadImages("ammu1.png", "ammu2.png", "ammu3.png", "ammu4.png");
     
+    /// <summary>
+    /// banaanin kuva
+    /// </summary>
     private Image manniKuva = LoadImage("manni.png");
+    /// <summary>
+    /// kuvat kun vihollinen kävelee
+    /// </summary>
     private Image[] vihunKavely = LoadImages("vihu1.png","vihu2.png","vihu3.png","vihu4.png");
+    /// <summary>
+    /// aseen kuva
+    /// </summary>
     private Image aseenKuva = LoadImage("ase.png");
     
+    /// <summary>
+    /// kuvat kun bossi on paikallaan
+    /// </summary>
     private Image[] bossIdle = LoadImages("bossIdle1.png", "bossIdle2.png", "bossIdle3.png", "bossIdle4.png",
         "bossIdle5.png", "bossIdle6.png");
+    /// <summary>
+    /// kuvat kun bossi kävelee
+    /// </summary>
     private Image[] bossKavely = LoadImages("bossKavely1.png", "bossKavely2.png", "bossKavely3.png", "bossKavely4.png",
         "bossKavely5.png", "bossKavely6.png", "bossKavely7.png", "bossKavely8.png", "bossKavely9.png", "bossKavely10.png", 
         "bossKavely11.png", "bossKavely12.png");
     
+    /// <summary>
+    /// taustakuva
+    /// </summary>
     private Image tausta = LoadImage("BG.png");
+    /// <summary>
+    /// tason kuva
+    /// </summary>
     private Image platform = LoadImage("platform.png");
     
+    /// <summary>
+    /// lista jossa on alkuvalikon kohdat
+    /// </summary>
     List<Label> valikonKohdat;
     
-    private SoundEffect valikkoHover = LoadSoundEffect("valikkoHover");
-    private SoundEffect valikkoValinta = LoadSoundEffect("valikkovalinta");
-    private SoundEffect manninKerays = LoadSoundEffect("manninKerays");
-    private SoundEffect osuma = LoadSoundEffect("osuma");
-    private SoundEffect levelCompleted = LoadSoundEffect("levelCompleted");
-    private SoundEffect kentanVaihto = LoadSoundEffect("kentanVaihto");
-    private SoundEffect wasted = LoadSoundEffect("wasted");
+    /// <summary>
+    /// ääni joka kuuluu kun hoveraat jonkun valikon kohdan päällä
+    /// </summary>
+    private static readonly SoundEffect valikkoHover = LoadSoundEffect("valikkoHover");
+    /// <summary>
+    /// ääni joka kuuluu kun painat alkuvalikosta jotain kohtaa
+    /// </summary>
+    private static readonly SoundEffect valikkoValinta = LoadSoundEffect("valikkovalinta");
+    /// <summary>
+    /// ääni joka kuuluu kun keräät banaanin
+    /// </summary>
+    private static readonly SoundEffect manninKerays = LoadSoundEffect("manninKerays");
+    /// <summary>
+    /// ääni joka kuuluu kun osut viholliseen tai bossiin
+    /// </summary>
+    private static readonly SoundEffect osuma = LoadSoundEffect("osuma");
+    /// <summary>
+    /// ääni joka kuuluu kun suoritat tason
+    /// </summary>
+    private static readonly SoundEffect levelCompleted = LoadSoundEffect("levelCompleted");
+    /// <summary>
+    /// ääni joka kuuluu kun kenttä vaihtuu
+    /// </summary>
+    private static readonly SoundEffect kentanVaihto = LoadSoundEffect("kentanVaihto");
+    /// <summary>
+    /// ääni joka kuuluu kun kuolet
+    /// </summary>
+    private static readonly SoundEffect wasted = LoadSoundEffect("wasted");
+    /// <summary>
+    /// musiikki joka soi kun ollaan valikossa
+    /// </summary>
+    private static readonly SoundEffect valikkoMusiikki = LoadSoundEffect("valikkoMusiikki");
+    /// <summary>
+    /// musiikki joka soi kun ollaan pelissä
+    /// </summary>
+    private static readonly SoundEffect taustaMusiikki = LoadSoundEffect("taustaMusiikki");
     
     public override void Begin()
     {
@@ -68,15 +175,15 @@ public class ManniMies : PhysicsGame
         Valikko();
     }
     
+    
     /// <summary>
     /// Pelin alkuvalikko
     /// </summary>
-    
     private void Valikko()
     {
         Level.BackgroundColor = Color.LightBlue;
         
-        MediaPlayer.Play("valikkoMusiikki");
+        MediaPlayer.Play(valikkoMusiikki);
         
         Label otsikko = new Label("ManniMies");
         otsikko.Y = 150;
@@ -112,12 +219,12 @@ public class ManniMies : PhysicsGame
             kohta2, false);
     }
     
+    
     /// <summary>
     /// Vaihtaa punaiseksi valikonkohdan jonka päällä hiiri on
     /// </summary>
     /// <param name="kohta">valikonkohta</param>
     /// <param name="paalla">onko hiiri kohdan päällä vai ei</param>
-    
     private void ValikossaLiikkuminen(Label kohta, bool paalla)
     {
         if (paalla)
@@ -128,10 +235,10 @@ public class ManniMies : PhysicsGame
         else kohta.TextColor = Color.Black;
     }
     
+    
     /// <summary>
     /// Pelin tarinaa
     /// </summary>
-    
     private void AlkuTekstit()
     {
         ClearAll();
@@ -139,19 +246,19 @@ public class ManniMies : PhysicsGame
         Level.BackgroundColor = Color.Black;
         Timer.SingleShot(1,
             delegate { Teksti("Hirvittävä demoni on vohkinut kaikki maailman mannit!",1000,100,0,true, Color.White); });
-        Timer.SingleShot(3.5,
+        Timer.SingleShot(3,
             delegate { Teksti("Tehtäväsi on kerätä kaikki mannit",700,100,0,true, Color.White); });
-        Timer.SingleShot(6,
+        Timer.SingleShot(5,
             delegate { Teksti("sekä tuhota iljettävä demoni ja sen kätyrit",900,100,0,true, Color.White); });
-        Timer.SingleShot(8.5,
+        Timer.SingleShot(7,
             delegate { Teksti("Oletko valmis?",400,100,0,true, Color.White); });        
-        Timer.SingleShot(10,SeuraavaKentta);
+        Timer.SingleShot(9,SeuraavaKentta);
     }
+    
     
     /// <summary>
     /// Vaihtaa seuraavaan kenttään
     /// </summary>
-    
     private void SeuraavaKentta()
     {
         ClearAll();
@@ -175,11 +282,11 @@ public class ManniMies : PhysicsGame
         }
     }
     
+    
     /// <summary>
     /// Peli alkaa
     /// </summary>
     /// <param name="kenttaNRO">monesko kenttä on menossa</param>
-    
     private void AloitaPeli(string kenttaNRO)
     {
         Gravity = new Vector(0, -1000);
@@ -199,15 +306,15 @@ public class ManniMies : PhysicsGame
         Level.Background.MovesWithCamera = true;
         Level.Background.FitToLevel();
         
-        MediaPlayer.Play("taustamusiikki");
+        MediaPlayer.Play(taustaMusiikki);
         MediaPlayer.IsRepeating = true;
     }
+    
     
     /// <summary>
     /// Luo kentän
     /// </summary>
     /// <param name="kenttaNRO">mikä kenttä luodaan</param>
-
     private void LuoKentta(string kenttaNRO)
     {
         kentanVaihto.Play();
@@ -235,13 +342,13 @@ public class ManniMies : PhysicsGame
         }
     }
     
+    
     /// <summary>
     /// Lisöä kenttään tasot
     /// </summary>
     /// <param name="paikka"></param>
     /// <param name="leveys"></param>
     /// <param name="korkeus"></param>
-
     private void LisaaTaso(Vector paikka, double leveys, double korkeus)
     {
         PhysicsObject taso = PhysicsObject.CreateStaticObject(leveys, korkeus);
@@ -251,13 +358,13 @@ public class ManniMies : PhysicsGame
         Add(taso);
     }
     
+    
     /// <summary>
     /// Lisää kenttään pelaajan
     /// </summary>
     /// <param name="paikka">pelaajan paikka kun kenttä alkaa</param>
     /// <param name="leveys">hahmon leveys</param>
     /// <param name="korkeus">hahmon korkeus</param>
-    
     private void LisaaPelaaja(Vector paikka, double leveys, double korkeus)
     {
         pelaaja = new PlatformCharacter(leveys,korkeus)
@@ -281,13 +388,13 @@ public class ManniMies : PhysicsGame
         Add(pelaaja);
     }
     
+    
     /// <summary>
     /// Lisää banaanit kenttään
     /// </summary>
     /// <param name="paikka">mihin banaanit lisätään</param>
     /// <param name="leveys">banaanin leveys</param>
     /// <param name="korkeus">banaanin korkeus</param>
-    
     private void LisaaManni(Vector paikka, double leveys, double korkeus)
     {
         PhysicsObject manni = PhysicsObject.CreateStaticObject(leveys, korkeus);
@@ -299,13 +406,13 @@ public class ManniMies : PhysicsGame
         Add(manni);
     }
     
+    
     /// <summary>
     /// Lisää viholliset kenttään
     /// </summary>
     /// <param name="paikka">mihin viholliset lisätään</param>
     /// <param name="leveys">vihollisen leveys</param>
     /// <param name="korkeus">vihollisen korkeus</param>
-
     private void LisaaVihu(Vector paikka, double leveys, double korkeus)
     {
         vihu = new PlatformCharacter(leveys, korkeus)
@@ -322,13 +429,13 @@ public class ManniMies : PhysicsGame
         Add(vihu);
     }
     
+    
     /// <summary>
     /// Lisää bossin kenttään
     /// </summary>
     /// <param name="paikka">mihin bossi lisätään</param>
     /// <param name="leveys">bossin leveys</param>
     /// <param name="korkeus">bossin korkeus</param>
-
     private void LisaaBossi(Vector paikka, double leveys, double korkeus)
     {
         boss = new PlatformCharacter(leveys*3, korkeus*3)
@@ -351,10 +458,10 @@ public class ManniMies : PhysicsGame
         Add(boss);
     }
     
+    
     /// <summary>
     /// Lisää kontrollit peliin
     /// </summary>
-    
     private void LisaaNappaimet()
     {
         Keyboard.Listen(Key.D, ButtonState.Down, Liikuta, "pelaaja liikkuu oikealle", pelaaja, nopeus);
@@ -364,35 +471,35 @@ public class ManniMies : PhysicsGame
         Keyboard.Listen(Key.F1, ButtonState.Pressed, ShowControlHelp, "näytä ohjeet");
     }
     
+    
     /// <summary>
     /// Liikuttaa pelaajaa
     /// </summary>
     /// <param name="hahmo">pelaaja</param>
     /// <param name="suunta">mihin suuntaan pelaaja liikkuu</param>
-
     private void Liikuta(PlatformCharacter hahmo, double suunta)
     {
         hahmo.Walk(suunta);
-        if (pelaaja.Y >= 320) bossinAivot.Active = true;
+        if (pelaaja.Y >= raja && kenttaNro == 3) bossinAivot.Active = true;
     }
+    
     
     /// <summary>
     /// Pelaaja hyppää
     /// </summary>
     /// <param name="hahmo">pelaaja</param>
     /// <param name="suunta">kuinka korkealle pelaaja hyppää</param>
-
     private void Hyppaa(PlatformCharacter hahmo, double suunta)
     {
         hahmo.Jump(suunta);
     }
+    
     
     /// <summary>
     /// Kun pelaaja kerää banaanin
     /// </summary>
     /// <param name="hahmo">pelaaja</param>
     /// <param name="manni">banaani</param>
-    
     private void TormaaManniin(PhysicsObject hahmo, PhysicsObject manni)
     {
         manninKerays.Play();
@@ -410,12 +517,12 @@ public class ManniMies : PhysicsGame
         }
     }
     
+    
     /// <summary>
     /// Kun pelaaja törmää viholliseen
     /// </summary>
     /// <param name="hahmo">pelaaja</param>
     /// <param name="vihollinen">vihollinen</param>
-
     private void TormaaVihuun(PhysicsObject hahmo, PhysicsObject vihollinen)
     {
         osuma.Play();
@@ -424,6 +531,7 @@ public class ManniMies : PhysicsGame
         elamaLaskuri.Value -= 1;
     }
 
+    
     /// <summary>
     /// Kun pelaaja törmää bossiin
     /// </summary>
@@ -438,11 +546,11 @@ public class ManniMies : PhysicsGame
         elamaLaskuri.Value -= 1;
     }
     
+    
     /// <summary>
     /// Pelaaja ampuu aseella
     /// </summary>
     /// <param name="hahmo">pelaaja</param>
-    
     private void AmmuAseella(PlatformCharacter hahmo)
     {
         PhysicsObject ammus = hahmo.Weapon.Shoot();
@@ -459,12 +567,12 @@ public class ManniMies : PhysicsGame
         } 
     }
     
+    
     /// <summary>
     /// Ammus osuu johonkin
     /// </summary>
     /// <param name="ammus">ammus</param>
     /// <param name="kohde">mihin ammus osuu</param>
-    
     private void AmmusOsui(PhysicsObject ammus, PhysicsObject kohde)
     {
         if (ReferenceEquals(kohde.Tag, "taso"))
@@ -493,10 +601,10 @@ public class ManniMies : PhysicsGame
         }
     }
     
+    
     /// <summary>
     /// Luo pistelaskurin oikeaan ylänurkkaan
     /// </summary>
-    
     private void LuoPisteLaskuri()
     {
         pisteLaskuri = new IntMeter(10);
@@ -513,10 +621,10 @@ public class ManniMies : PhysicsGame
         Add(pisteNaytto);
     }
     
+    
     /// <summary>
     /// Kun kenttä on läpäisty
     /// </summary>
-    
     private void LevelLapi()
     {
         if (kenttaNro >= 3) Voitit();
@@ -535,10 +643,10 @@ public class ManniMies : PhysicsGame
         Timer.SingleShot(7.0, SeuraavaKentta);
     }
     
+    
     /// <summary>
     /// Kun voittaa pelin
     /// </summary>
-    
     private void Voitit()
     {
         MediaPlayer.Stop();
@@ -556,13 +664,14 @@ public class ManniMies : PhysicsGame
             TextColor = Color.Green
         };
         Add(voitit);
+        kenttaNro = 1;
         Timer.SingleShot(7.0, Begin);
     }
+    
     
     /// <summary>
     /// Luo elämäpalkin vasempaan ylänurkkaan
     /// </summary>
-    
     private void LuoElamaLaskuri()
     {
         elamaLaskuri = new DoubleMeter(10);
@@ -581,10 +690,10 @@ public class ManniMies : PhysicsGame
         Add(elamaPalkki);
     }
     
+    
     /// <summary>
     /// Luo bossin elämäpalkin alareunaan 3. kentässä
     /// </summary>
-    
     private void LuoBossinElamalaskuri()
     {
         bossinElamaLaskuri = new DoubleMeter(10);
@@ -603,10 +712,10 @@ public class ManniMies : PhysicsGame
         Add(elamaPalkki);
     }
     
+    
     /// <summary>
     /// Kun pelaajan elämät loppuu
     /// </summary>
-    
     private void ElamaLoppui()
     {
         MediaPlayer.Stop();
@@ -623,6 +732,7 @@ public class ManniMies : PhysicsGame
         Timer.SingleShot(7.0, SeuraavaKentta);
     }
     
+    
     /// <summary>
     /// Kaikki tekstit mitkä näkyy pelissä
     /// </summary>
@@ -632,7 +742,6 @@ public class ManniMies : PhysicsGame
     /// <param name="y">tekstin y-koordnaatti</param>
     /// <param name="onko">onko teksti pysyvä vai tuohoutuuko se 2 sekunnin kuluttua</param>
     /// <param name="vari">tekstin väri</param>
-    
     private void Teksti(string text, double leveys, double korkeus, int y, bool onko, Color vari)
     {
         Label teksti = new Label(leveys, korkeus, text)
@@ -650,18 +759,19 @@ public class ManniMies : PhysicsGame
         }
     }
     
+    
     /// <summary>
     /// Määrää mitä kussakin kentässä sataa
     /// </summary>
-    
     private void Sade()
     {
-        if (kenttaNro == 1) LisaaSade(35, 0.1, 5, Color.LightBlue, Shape.Circle);
+        if (kenttaNro == 1) LisaaSade(30, 0.1, 5, Color.LightBlue, Shape.Circle);
 
         if (kenttaNro == 2) LisaaSade(25, 0.4, 7, Color.White, Shape.Circle);
 
-        if (kenttaNro == 3) LisaaSade(25, 0.1, 7, Color.Red, Shape.Triangle);
+        if (kenttaNro == 3) LisaaSade(20, 0.1, 7, Color.Red, Shape.Triangle);
     }
+    
     
     /// <summary>
     /// Lisää sateen kenttiin
@@ -671,7 +781,6 @@ public class ManniMies : PhysicsGame
     /// <param name="koko">pisaroiden koko</param>
     /// <param name="vari">pisaroiden väri</param>
     /// <param name="muoto">pisaroiden muoto</param>
-    
     private void LisaaSade(int paljonko, double massa, int koko, Color vari, Shape muoto)
     {
         for (int i = 0; i < paljonko; i++)

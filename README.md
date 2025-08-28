@@ -1,11 +1,5 @@
-# Pohja Ohjelmointi 1 -kurssin harjoitustöiden GIT-repoille.
+# Manni Mies
 
-Tämä on pohja Ohjelmointi 1 -kurssin harjoitustöiden Git-repoille. 
-Opiskelija forkkaa tämän repon omaa harjoitustyötään varten. 
-`fork`-toiminto löytyy sivun yläreunasta.
-
-Muokkaa gitlab.jyu.fi-palvelussa oman projektisi asetuksia, kuten projektin nimeä
-ja projektin kuvausta kohdasta Settings. 
-
-Lue Git-versiohallinnan tarkemmat käyttöohjeet TIMistä: <https://tim.jyu.fi/view/kurssit/tie/ohj1/harjoitustyo/git>
-
+A 2D platformer game called Manni Mies (Banana Man), in which you are a soldier who has to 
+kill zombies and collect bananas in order to complete levels and advance further. This game was
+developed with Jypeli and created on the course Ohjelmointi 1 at the University of Jyväskylä.
